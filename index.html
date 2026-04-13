@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>C3 WebGL - Texture Switcher</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0a0a0f;
+      color: #e0e0e0;
+      overflow: hidden;
+    }
+    
+    #canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: move;
+    }
+    
+    #controls {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(20, 20, 30, 0.95);
+      padding: 20px;
+      border-radius: 8px;
+      min-width: 300px;
+      max-width: 400px;
+    }
+    
+    h1 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #4a9eff;
+    }
+    
+    .control-group {
+      margin: 15px 0;
+    }
+    
+    label {
+      display: block;
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 5px;
+    }
+    
+    select, input {
+      width: 100%;
+      padding: 8px;
+      background: #1a1a2e;
+      border: 1px solid #333;
+      border-radius: 4px;
+      color: #e0e0e0;
+      font-size: 14px;
+    }
+    
+    select:focus, input:focus {
+      outline: none;
+      border-color: #4a9eff;
+    }
+    
+    .button-group {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+      margin-top: 10px;
+    }
+    
+    button {
+      background: #2a2a3e;
+      border: 1px solid #444;
+      color: #e0e0e0;
+      padding: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    
+    button:hover {
+      background: #3a3a4e;
+      border-color: #4a9eff;
+    }
+    
+    button.active {
+      background: #4a9eff;
+      border-color: #4a9eff;
+      color: white;
+    }
+    
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+    }
+    
+    .status {
+      margin-top: 15px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+      font-size: 12px;
+      color: #4caf50;
+    }
+  </style>
+</head>
+<body>
+  
+  <canvas id="canvas"></canvas>
+  
+  <div id="controls">
+    <h1>C3 Texture Switcher</h1>
+    
+    <div class="control-group">
+      <label>Body Type</label>
+      <select id="bodySelect">
+        <option value="1">Body 0001 - Male</option>
+        <option value="2">Body 0002 - Female</option>
+        <option value="3" selected>Body 0003 - Fat</option>
+        <option value="4">Body 0004 - Muscular</option>
+      </select>
+    </div>
+    
+    <div class="control-group">
+      <label>Garment / Outfit</label>
+      <select id="garmentSelect">
+        <option value="200">Garment 200</option>
+        <option value="210">Garment 210</option>
+        <option value="220">Garment 220</option>
+        <option value="230">Garment 230</option>
+        <option value="240" selected>Garment 240 (Default)</option>
+        <option value="250">Garment 250</option>
+        <option value="260">Garment 260</option>
+        <option value="270">Garment 270</option>
+        <option value="280">Garment 280</option>
+        <option value="290">Garment 290</option>
+      </select>
+    </div>
+    
+    <div class="control-group">
+      <label>Quick Select Garments</label>
+      <div class="button-group">
+        <button data-garment="200">200</button>
+        <button data-garment="210">210</button>
+        <button data-garment="220">220</button>
+        <button data-garment="230">230</button>
+        <button data-garment="240" class="active">240</button>
+        <button data-garment="250">250</button>
+        <button data-garment="260">260</button>
+        <button data-garment="270">270</button>
+        <button data-garment="280">280</button>
+        <button data-garment="290">290</button>
+      </div>
+    </div>
+    
+    <div class="control-group checkbox-group">
+      <input type="checkbox" id="autoRotate" checked>
+      <label for="autoRotate" style="margin: 0">Auto-Rotate</label>
+    </div>
+    
+    <div class="status" id="status">
+      Ready
+    </div>
+  </div>
+  
+  <script type="module">
+    import { C3Loader } from './C3Loader.js';
+    import { C3Renderer } from './C3Renderer.js';
+    import { TextureLoader } from './TextureLoader.js';
+    
+    // Setup
+    const canvas = document.getElementById('canvas');
+    const status = document.getElementById('status');
+    const bodySelect = document.getElementById('bodySelect');
+    const garmentSelect = document.getElementById('garmentSelect');
+    const autoRotateCheck = document.getElementById('autoRotate');
+    const garmentButtons = document.querySelectorAll('[data-garment]');
+    
+    let renderer;
+    let rotating = true;
+    let rotationAngle = 0;
+    let currentBody = 3;
+    let currentGarment = 240;
+    
+    // Initialize WebGL canvas
+    function initCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      renderer = new C3Renderer(canvas);
+      status.textContent = 'WebGL ready';
+    }
+    
+    // Load character with specific texture
+    async function loadCharacter() {
+      try {
+        status.textContent = `Loading Body ${String(currentBody).padStart(3, '0')} with Garment ${currentGarment}...`;
+        
+        // Clear existing meshes
+        renderer.meshes = [];
+        
+        // Build path to C3 file (uses 4 digits for folder)
+        const bodyStr4 = String(currentBody).padStart(4, '0');
+        const bodyStr3 = String(currentBody).padStart(3, '0');
+        const c3Path = `/client-5065/c3/${bodyStr4}/611/130.C3`;
+        
+        console.log(`Loading: ${c3Path}`);
+        
+        // Load model
+        const model = await C3Loader.load(c3Path);
+        
+        // Build texture path with garment (uses 3 digits for texture filename)
+        const texturePath = `/client-5065/c3/texture/${bodyStr3}130${currentGarment}.dds`;
+        
+        console.log(`Texture: ${texturePath}`);
+        
+        // Add meshes with texture
+        for (const mesh of model.meshes) {
+          await renderer.addMesh(mesh, texturePath);
+        }
+        
+        status.textContent = `✓ Loaded Body ${bodyStr3} - Garment ${currentGarment}`;
+        
+      } catch (err) {
+        console.error('Load error:', err);
+        status.textContent = `Error: ${err.message}`;
+      }
+    }
+    
+    // Render loop
+    function renderLoop() {
+      if (rotating) {
+        rotationAngle += 0.01;
+        
+        // Update camera position
+        const radius = Math.sqrt(800 * 800 + 800 * 800);
+        renderer.camera.eye.x = radius * Math.sin(rotationAngle);
+        renderer.camera.eye.y = -radius * Math.cos(rotationAngle);
+        renderer.camera.eye.z = -800;
+        
+        renderer.initUniforms();
+      }
+      
+      renderer.render();
+      requestAnimationFrame(renderLoop);
+    }
+    
+    // Event listeners
+    bodySelect.addEventListener('change', async () => {
+      currentBody = parseInt(bodySelect.value);
+      await loadCharacter();
+    });
+    
+    garmentSelect.addEventListener('change', async () => {
+      currentGarment = parseInt(garmentSelect.value);
+      
+      // Update button states
+      garmentButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.garment === String(currentGarment));
+      });
+      
+      await loadCharacter();
+    });
+    
+    garmentButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentGarment = parseInt(btn.dataset.garment);
+        garmentSelect.value = currentGarment;
+        
+        garmentButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        loadCharacter();
+      });
+    });
+    
+    autoRotateCheck.addEventListener('change', () => {
+      rotating = autoRotateCheck.checked;
+    });
+    
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      if (renderer) renderer.initUniforms();
+    });
+    
+    // Initialize
+    initCanvas();
+    loadCharacter();
+    renderLoop();
+    
+  </script>
+  
+</body>
+</html>
