@@ -215,7 +215,7 @@
         // Build path to C3 file (uses 4 digits for folder)
         const bodyStr4 = String(currentBody).padStart(4, '0');
         const bodyStr3 = String(currentBody).padStart(3, '0');
-        const c3Path = `/client-5065/c3/${bodyStr4}/611/130.C3`;
+        const c3Path = `client-5065/c3/${bodyStr4}/611/130.C3`;
         
         console.log(`Loading: ${c3Path}`);
         
@@ -223,7 +223,7 @@
         const model = await C3Loader.load(c3Path);
         
         // Build texture path with garment (uses 3 digits for texture filename)
-        const texturePath = `/client-5065/c3/texture/${bodyStr3}130${currentGarment}.dds`;
+        const texturePath = `client-5065/c3/texture/${bodyStr3}130${currentGarment}.dds`;
         
         console.log(`Texture: ${texturePath}`);
         
